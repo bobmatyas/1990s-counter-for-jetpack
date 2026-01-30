@@ -12,10 +12,8 @@
    ========================================================================== */
 
 .nineties-counter {
-	display: inline-block;
 	font-family: 'Courier New', Courier, monospace;
 	line-height: 1;
-	text-align: center;
 }
 
 .nineties-counter__display {
