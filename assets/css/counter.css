@@ -1,0 +1,224 @@
+/**
+ * 1990s Counter Styles
+ *
+ * Nostalgic hit counter styles inspired by the web of the 1990s.
+ * Pure CSS, no JavaScript, no animations (per spec).
+ *
+ * @package NinetiesCounterForJetpack
+ */
+
+/* ==========================================================================
+   Base Counter Styles
+   ========================================================================== */
+
+.nineties-counter {
+	display: inline-block;
+	font-family: 'Courier New', Courier, monospace;
+	line-height: 1;
+	text-align: center;
+}
+
+.nineties-counter__display {
+	display: inline-flex;
+	gap: 2px;
+	padding: 8px 12px;
+	border-radius: 4px;
+}
+
+.nineties-counter__digit {
+	display: inline-block;
+	min-width: 0.7em;
+	padding: 4px 6px;
+	text-align: center;
+	font-weight: bold;
+	font-size: 1.5em;
+}
+
+/* ==========================================================================
+   Classic LCD Style (Green on Black)
+   ========================================================================== */
+
+.nineties-counter--classic .nineties-counter__display {
+	background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+	border: 3px solid #333;
+	border-top-color: #555;
+	border-left-color: #555;
+	box-shadow:
+		inset 0 2px 4px rgba(0, 0, 0, 0.8),
+		0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.nineties-counter--classic .nineties-counter__digit {
+	color: #39ff14;
+	background: #0a0a0a;
+	border: 1px solid #222;
+	text-shadow:
+		0 0 8px #39ff14,
+		0 0 12px #39ff14;
+	font-family: 'Digital-7', 'Courier New', monospace;
+}
+
+/* ==========================================================================
+   Retro LED Style (Red on Black)
+   ========================================================================== */
+
+.nineties-counter--retro .nineties-counter__display {
+	background: linear-gradient(180deg, #2a0a0a 0%, #1a0505 100%);
+	border: 3px solid #4a1010;
+	box-shadow:
+		inset 0 2px 4px rgba(0, 0, 0, 0.8),
+		0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.nineties-counter--retro .nineties-counter__digit {
+	color: #ff3333;
+	background: #1a0505;
+	border: 1px solid #3a0a0a;
+	text-shadow:
+		0 0 6px #ff3333,
+		0 0 10px #ff0000;
+}
+
+/* ==========================================================================
+   Vintage Odometer Style (Flip Digits)
+   ========================================================================== */
+
+.nineties-counter--vintage .nineties-counter__display {
+	background: linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 100%);
+	border: 4px solid #5a5a5a;
+	border-bottom-color: #3a3a3a;
+	border-right-color: #3a3a3a;
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.1),
+		0 3px 6px rgba(0, 0, 0, 0.4);
+	padding: 6px 10px;
+}
+
+.nineties-counter--vintage .nineties-counter__digit {
+	color: #f5f5f5;
+	background: linear-gradient(
+		180deg,
+		#1a1a1a 0%,
+		#1a1a1a 48%,
+		#0a0a0a 50%,
+		#1a1a1a 52%,
+		#1a1a1a 100%
+	);
+	border: 2px solid #0a0a0a;
+	border-radius: 3px;
+	box-shadow:
+		inset 0 1px 2px rgba(0, 0, 0, 0.5),
+		0 1px 0 rgba(255, 255, 255, 0.1);
+	padding: 6px 8px;
+	font-family: 'Arial Black', 'Helvetica Bold', sans-serif;
+}
+
+/* ==========================================================================
+   Terminal Style (Green Phosphor)
+   ========================================================================== */
+
+.nineties-counter--terminal .nineties-counter__display {
+	background: #0a1a0a;
+	border: 2px solid #1a3a1a;
+	padding: 10px 14px;
+	position: relative;
+}
+
+.nineties-counter--terminal .nineties-counter__digit {
+	color: #33ff33;
+	background: transparent;
+	border: none;
+	text-shadow:
+		0 0 2px #33ff33,
+		0 0 4px #33ff33,
+		0 0 8px rgba(51, 255, 51, 0.5);
+	padding: 2px 4px;
+	font-family: 'Courier New', Courier, monospace;
+	letter-spacing: 0.05em;
+}
+
+/* Add scanline effect for terminal style */
+.nineties-counter--terminal .nineties-counter__display::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: repeating-linear-gradient(
+		0deg,
+		rgba(0, 0, 0, 0.1) 0px,
+		rgba(0, 0, 0, 0.1) 1px,
+		transparent 1px,
+		transparent 2px
+	);
+	pointer-events: none;
+}
+
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+
+@media (max-width: 480px) {
+	.nineties-counter__digit {
+		font-size: 1.2em;
+		padding: 3px 4px;
+		min-width: 0.6em;
+	}
+
+	.nineties-counter__display {
+		padding: 6px 8px;
+		gap: 1px;
+	}
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+	.nineties-counter {
+		border: 1px solid #000;
+	}
+
+	.nineties-counter__digit {
+		color: #000;
+		background: #fff;
+		text-shadow: none;
+		border: 1px solid #ccc;
+	}
+
+	.nineties-counter__display {
+		background: #f5f5f5;
+		box-shadow: none;
+	}
+}
+
+/* ==========================================================================
+   High Contrast Mode Support
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+	.nineties-counter__digit {
+		border: 2px solid currentColor;
+		text-shadow: none;
+	}
+
+	.nineties-counter__display {
+		border: 3px solid currentColor;
+	}
+}
+
+/* ==========================================================================
+   Reduced Motion Support
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	/* Counter is static by design, but this ensures any
+	   future additions respect user preferences */
+	.nineties-counter,
+	.nineties-counter__digit {
+		transition: none;
+	}
+}
