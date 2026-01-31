@@ -113,7 +113,6 @@ class Plugin {
 				'sanitize_callback' => array( $this, 'sanitize_settings' ),
 				'default'           => array(
 					'digit_count' => 6,
-					'offset'      => 0,
 					'style'       => 'classic',
 				),
 			)
@@ -132,15 +131,6 @@ class Plugin {
 			'digit_count',
 			__( 'Digit Count', '1990s-counter-for-jetpack' ),
 			array( $this, 'render_digit_count_field' ),
-			'nineties-counter',
-			'nineties_counter_main'
-		);
-
-		// Offset field.
-		add_settings_field(
-			'offset',
-			__( 'Starting Offset', '1990s-counter-for-jetpack' ),
-			array( $this, 'render_offset_field' ),
 			'nineties-counter',
 			'nineties_counter_main'
 		);
@@ -168,11 +158,6 @@ class Plugin {
 		$sanitized['digit_count'] = isset( $input['digit_count'] )
 			? max( 1, min( 12, absint( $input['digit_count'] ) ) )
 			: 6;
-
-		// Offset: can be negative, but reasonable bounds.
-		$sanitized['offset'] = isset( $input['offset'] )
-			? max( -1000000, min( 1000000, intval( $input['offset'] ) ) )
-			: 0;
 
 		// Style: must be a valid style key.
 		$valid_styles        = array_keys( Counter_Renderer::get_available_styles() );
@@ -267,28 +252,6 @@ class Plugin {
 	}
 
 	/**
-	 * Render the offset field.
-	 *
-	 * @return void
-	 */
-	public function render_offset_field() {
-		$settings = get_option( 'nineties_counter_settings', array() );
-		$value    = isset( $settings['offset'] ) ? $settings['offset'] : 0;
-		?>
-		<input
-			type="number"
-			id="offset"
-			name="nineties_counter_settings[offset]"
-			value="<?php echo esc_attr( $value ); ?>"
-			class="regular-text"
-		>
-		<p class="description">
-			<?php esc_html_e( 'Add or subtract from the displayed count. Use this to account for views from before installing the counter.', '1990s-counter-for-jetpack' ); ?>
-		</p>
-		<?php
-	}
-
-	/**
 	 * Render the style field.
 	 *
 	 * @return void
@@ -363,7 +326,6 @@ class Plugin {
 		// Get and sanitize parameters.
 		$style       = isset( $_POST['style'] ) ? sanitize_text_field( wp_unslash( $_POST['style'] ) ) : 'classic';
 		$digit_count = isset( $_POST['digit_count'] ) ? absint( $_POST['digit_count'] ) : 6;
-		$offset      = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
 
 		// Validate style.
 		$valid_styles = array_keys( Counter_Renderer::get_available_styles() );
@@ -374,14 +336,10 @@ class Plugin {
 		// Validate digit count.
 		$digit_count = max( 1, min( 12, $digit_count ) );
 
-		// Validate offset.
-		$offset = max( -1000000, min( 1000000, $offset ) );
-
 		// Create renderer with preview settings.
 		$preview_settings = array(
 			'style'       => $style,
 			'digit_count' => $digit_count,
-			'offset'      => $offset,
 		);
 
 		$renderer = new Counter_Renderer( $preview_settings );

@@ -15,7 +15,6 @@
 	function init() {
 		var styleSelect = document.getElementById( 'style' );
 		var digitCountInput = document.getElementById( 'digit_count' );
-		var offsetInput = document.getElementById( 'offset' );
 		var previewContainer = document.querySelector( '.nineties-counter-preview' );
 
 		if ( ! styleSelect || ! previewContainer ) {
@@ -34,7 +33,6 @@
 			formData.append( 'nonce', ninetiesCounterAdmin.nonce );
 			formData.append( 'style', styleSelect.value );
 			formData.append( 'digit_count', digitCountInput ? digitCountInput.value : 6 );
-			formData.append( 'offset', offsetInput ? offsetInput.value : 0 );
 
 			fetch( ninetiesCounterAdmin.ajaxUrl, {
 				method: 'POST',
@@ -74,10 +72,6 @@
 			digitCountInput.addEventListener( 'input', debouncedUpdate );
 		}
 
-		// Listen for offset changes.
-		if ( offsetInput ) {
-			offsetInput.addEventListener( 'input', debouncedUpdate );
-		}
 	}
 
 	// Initialize when DOM is ready.

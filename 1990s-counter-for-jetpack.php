@@ -79,7 +79,6 @@ function nineties_counter_activate() {
 	if ( false === get_option( 'nineties_counter_settings' ) ) {
 		$defaults = array(
 			'digit_count' => 6,
-			'offset'      => 0,
 			'style'       => 'classic',
 		);
 		add_option( 'nineties_counter_settings', $defaults );

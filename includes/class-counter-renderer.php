@@ -65,7 +65,6 @@ class Counter_Renderer {
 	private function get_settings() {
 		$defaults = array(
 			'digit_count' => 6,
-			'offset'      => 0,
 			'style'       => 'classic',
 		);
 
@@ -81,11 +80,8 @@ class Counter_Renderer {
 	 * @return string The rendered HTML.
 	 */
 	public function render( $value ) {
-		// Apply offset.
-		$display_value = $value + (int) $this->settings['offset'];
-
 		// Ensure non-negative.
-		$display_value = max( 0, $display_value );
+		$display_value = max( 0, $value );
 
 		// Get digit count (minimum 1, maximum 12).
 		$digit_count = max( 1, min( 12, (int) $this->settings['digit_count'] ) );
