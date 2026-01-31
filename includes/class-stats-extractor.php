@@ -48,11 +48,8 @@ class Stats_Extractor {
 	/**
 	 * Extract the numeric stats value from Jetpack block HTML.
 	 *
-	 * Strategy:
-	 * 1. Look for numeric patterns in the HTML
-	 * 2. Filter out non-stat numbers (dates, IDs, etc.)
-	 * 3. Return the most likely stats value
-	 * 4. Return null on any ambiguity or failure
+	 * Strips to text (e.g. "1,142 hits"), takes the first number, with a fallback
+	 * to find-all-numbers-then-max. Returns null on failure.
 	 *
 	 * @param string $html The rendered Jetpack blog stats block HTML.
 	 * @return int|null The extracted stats value, or null on failure.
@@ -63,8 +60,8 @@ class Stats_Extractor {
 			return null;
 		}
 
-		// Try cache first.
-		$cached = $this->get_cached_value();
+		// Try cache first (per-block key so multiple blocks show correct values).
+		$cached = $this->get_cached_value( $html );
 		if ( null !== $cached ) {
 			return $cached;
 		}
@@ -74,7 +71,7 @@ class Stats_Extractor {
 
 		// Cache successful extraction.
 		if ( null !== $value ) {
-			$this->cache_value( $value );
+			$this->cache_value( $html, $value );
 		}
 
 		return $value;
@@ -83,31 +80,41 @@ class Stats_Extractor {
 	/**
 	 * Perform the actual HTML extraction.
 	 *
-	 * Jetpack Blog Stats block typically renders the count in a specific structure.
-	 * We use multiple strategies in order of confidence:
-	 *
-	 * 1. Look for data attributes (most reliable if present)
-	 * 2. Look for the stats count element by class pattern
-	 * 3. Fall back to finding the largest number in the content
+	 * Jetpack Blog Stats block renders as "NUMBER label" (e.g. "1,142 hits", "588 visitors").
+	 * We match the first number in the text content, with a fallback to find-all-numbers-then-max.
 	 *
 	 * @param string $html The block HTML.
 	 * @return int|null Extracted value or null.
 	 */
 	private function extract_from_html( $html ) {
-		// Strategy 1: Look for data-count attribute (most reliable).
-		if ( preg_match( '/data-count=["\'](\d+)["\']/', $html, $matches ) ) {
-			return $this->sanitize_stats_value( $matches[1] );
-		}
-
-		// Strategy 2: Look for the count within the block structure.
-		// Jetpack typically puts the number in a span or similar element.
-		// We strip HTML tags and look for the number pattern.
 		$text_content = $this->extract_text_content( $html );
 
-		// Strategy 3: Find all number sequences and pick the most likely.
-		$value = $this->find_stats_number( $text_content );
+		// Primary: first number in content (matches "1,142 hits" / "588 visitors").
+		$value = $this->extract_first_number( $text_content );
+		if ( null !== $value ) {
+			return $value;
+		}
 
-		return $value;
+		// Fallback: find all numbers and take max (legacy/heuristic).
+		return $this->find_stats_number( $text_content );
+	}
+
+	/**
+	 * Extract the first number (with optional thousands separators) from text.
+	 *
+	 * Matches Jetpack output like "1,142 hits" or "588 visitors".
+	 *
+	 * @param string $text Plain text content.
+	 * @return int|null Extracted value or null.
+	 */
+	private function extract_first_number( $text ) {
+		if ( preg_match( '/\d{1,3}(?:[,.\s]\d{3})*|\d+/', $text, $matches ) ) {
+			$normalized = $this->normalize_number( $matches[0] );
+			if ( null !== $normalized ) {
+				return $this->sanitize_stats_value( $normalized );
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -223,12 +230,24 @@ class Stats_Extractor {
 	}
 
 	/**
-	 * Get cached stats value.
+	 * Get cache key for a block's HTML (per-block so multiple blocks keep correct values).
 	 *
+	 * @param string $html The block HTML.
+	 * @return string Transient key.
+	 */
+	private function get_cache_key( $html ) {
+		return self::CACHE_KEY . '_' . md5( $html );
+	}
+
+	/**
+	 * Get cached stats value for this block's HTML.
+	 *
+	 * @param string $html The block HTML (used to key the cache).
 	 * @return int|null Cached value or null.
 	 */
-	private function get_cached_value() {
-		$cached = get_transient( self::CACHE_KEY );
+	private function get_cached_value( $html ) {
+		$key = $this->get_cache_key( $html );
+		$cached = get_transient( $key );
 
 		// Transient returns false if not set or expired.
 		if ( false === $cached ) {
@@ -237,7 +256,7 @@ class Stats_Extractor {
 
 		// Validate cached value is still a valid integer.
 		if ( ! is_numeric( $cached ) ) {
-			delete_transient( self::CACHE_KEY );
+			delete_transient( $key );
 			return null;
 		}
 
@@ -245,28 +264,39 @@ class Stats_Extractor {
 	}
 
 	/**
-	 * Cache the extracted stats value.
+	 * Cache the extracted stats value for this block's HTML.
 	 *
 	 * Uses WordPress transients for native caching support.
 	 * Gracefully handles cache failures - extraction still works.
 	 *
-	 * @param int $value The value to cache.
+	 * @param string $html  The block HTML (used to key the cache).
+	 * @param int    $value The value to cache.
 	 * @return void
 	 */
-	private function cache_value( $value ) {
+	private function cache_value( $html, $value ) {
+		$key = $this->get_cache_key( $html );
 		// Intentionally ignore return value.
 		// Cache failure is not a critical error.
-		set_transient( self::CACHE_KEY, $value, self::CACHE_DURATION );
+		set_transient( $key, $value, self::CACHE_DURATION );
 	}
 
 	/**
-	 * Clear the cached stats value.
+	 * Clear all cached stats values (all block-specific transients).
 	 *
 	 * Useful for testing or manual cache invalidation.
 	 *
 	 * @return void
 	 */
 	public function clear_cache() {
-		delete_transient( self::CACHE_KEY );
+		global $wpdb;
+		$value_prefix = $wpdb->esc_like( '_transient_' . self::CACHE_KEY . '_' ) . '%';
+		$timeout_prefix = $wpdb->esc_like( '_transient_timeout_' . self::CACHE_KEY . '_' ) . '%';
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+				$value_prefix,
+				$timeout_prefix
+			)
+		);
 	}
 }

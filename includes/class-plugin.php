@@ -80,6 +80,8 @@ class Plugin {
 	private function init_admin() {
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'wp_ajax_nineties_counter_preview', array( $this, 'ajax_preview' ) );
 	}
 
 	/**
@@ -310,5 +312,81 @@ class Plugin {
 			<?php esc_html_e( 'Choose the visual style for your hit counter.', '1990s-counter-for-jetpack' ); ?>
 		</p>
 		<?php
+	}
+
+	/**
+	 * Enqueue admin scripts for the settings page.
+	 *
+	 * @param string $hook_suffix The current admin page hook suffix.
+	 * @return void
+	 */
+	public function enqueue_admin_scripts( $hook_suffix ) {
+		// Only load on our settings page.
+		if ( 'settings_page_nineties-counter' !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'nineties-counter-admin',
+			NINETIES_COUNTER_PLUGIN_URL . 'assets/js/admin.js',
+			array(),
+			NINETIES_COUNTER_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'nineties-counter-admin',
+			'ninetiesCounterAdmin',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'nineties_counter_preview' ),
+			)
+		);
+	}
+
+	/**
+	 * Handle AJAX request for live preview.
+	 *
+	 * @return void
+	 */
+	public function ajax_preview() {
+		// Verify nonce.
+		if ( ! check_ajax_referer( 'nineties_counter_preview', 'nonce', false ) ) {
+			wp_send_json_error( 'Invalid nonce' );
+		}
+
+		// Verify capabilities.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Insufficient permissions' );
+		}
+
+		// Get and sanitize parameters.
+		$style       = isset( $_POST['style'] ) ? sanitize_text_field( wp_unslash( $_POST['style'] ) ) : 'classic';
+		$digit_count = isset( $_POST['digit_count'] ) ? absint( $_POST['digit_count'] ) : 6;
+		$offset      = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
+
+		// Validate style.
+		$valid_styles = array_keys( Counter_Renderer::get_available_styles() );
+		if ( ! in_array( $style, $valid_styles, true ) ) {
+			$style = 'classic';
+		}
+
+		// Validate digit count.
+		$digit_count = max( 1, min( 12, $digit_count ) );
+
+		// Validate offset.
+		$offset = max( -1000000, min( 1000000, $offset ) );
+
+		// Create renderer with preview settings.
+		$preview_settings = array(
+			'style'       => $style,
+			'digit_count' => $digit_count,
+			'offset'      => $offset,
+		);
+
+		$renderer = new Counter_Renderer( $preview_settings );
+		$html     = $renderer->render( 12345 );
+
+		wp_send_json_success( array( 'html' => $html ) );
 	}
 }
