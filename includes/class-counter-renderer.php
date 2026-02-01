@@ -196,12 +196,15 @@ class Counter_Renderer {
 		}
 		$enqueued = true;
 
+		$css_file = NINETIES_COUNTER_PLUGIN_DIR . 'assets/css/counter.css';
+		$version  = file_exists( $css_file ) ? (string) filemtime( $css_file ) : NINETIES_COUNTER_VERSION;
+
 		// Register and enqueue the stylesheet.
 		wp_register_style(
 			'nineties-counter',
 			NINETIES_COUNTER_PLUGIN_URL . 'assets/css/counter.css',
 			array(),
-			NINETIES_COUNTER_VERSION
+			$version
 		);
 		wp_enqueue_style( 'nineties-counter' );
 	}

@@ -85,10 +85,9 @@ class Block_Interceptor {
 	 * We receive the already-rendered HTML from Jetpack.
 	 *
 	 * Decision flow:
-	 * 1. Verify we're on frontend (not editor/REST)
-	 * 2. Attempt extraction
-	 * 3. If extraction succeeds, transform
-	 * 4. If extraction fails, return original HTML
+	 * 1. Attempt extraction from Jetpack HTML
+	 * 2. If extraction succeeds, transform (frontend and block editor)
+	 * 3. If extraction fails, return original HTML
 	 *
 	 * @param string   $block_content The rendered block HTML from Jetpack.
 	 * @param array    $block         The parsed block array.
@@ -96,12 +95,6 @@ class Block_Interceptor {
 	 * @return string The original or transformed HTML.
 	 */
 	public function intercept_render( $block_content, $block, $instance ) {
-		// Guard: Only transform on frontend.
-		// Do not affect editor previews, REST API responses, or admin contexts.
-		if ( $this->is_editor_context() ) {
-			return $block_content;
-		}
-
 		// Guard: Empty content means nothing to transform.
 		if ( empty( $block_content ) ) {
 			return $block_content;
@@ -118,33 +111,5 @@ class Block_Interceptor {
 
 		// Transform successful - render the hit counter.
 		return $this->renderer->render( $stats_value );
-	}
-
-	/**
-	 * Determine if we're in an editor or non-frontend context.
-	 *
-	 * We want to transform only on actual page/post views.
-	 * Editor previews, REST API, and admin should see original Jetpack output.
-	 *
-	 * @return bool True if in editor/admin context, false if frontend.
-	 */
-	private function is_editor_context() {
-		// REST API request (includes editor preview requests).
-		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			return true;
-		}
-
-		// Admin context (not frontend).
-		if ( is_admin() ) {
-			return true;
-		}
-
-		// AJAX requests from admin.
-		if ( wp_doing_ajax() ) {
-			return true;
-		}
-
-		// We're on the frontend.
-		return false;
 	}
 }

@@ -3,8 +3,8 @@
  * Plugin Name: 1990s Counter for Jetpack
  * Plugin URI: https://github.com/bobmatyas/1990s-counter-for-jetpack
  * Description: Transforms the Jetpack Blog Stats block into a nostalgic 1990s-style hit counter on the frontend.
- * Version: 1.0.0
- * Requires at least: 6.0
+ * Version: 1.0.2
+ * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Bob Matyas
  * License: GPL-2.0-or-later
@@ -64,8 +64,130 @@ function nineties_counter_init() {
 	// Bootstrap the plugin.
 	$plugin = new Nineties_Counter\Plugin();
 	$plugin->init();
+
+	// Remove Blog Stats block styles in editor (JS) and on init (PHP fallback).
+	add_action( 'enqueue_block_editor_assets', 'nineties_counter_enqueue_editor_script' );
+	// Register counter CSS for the block editor so it loads inside the editor iframe (WP 6.3+).
+	// add_editor_style() is processed by get_block_editor_theme_styles() and injected into the iframe.
+	add_action( 'after_setup_theme', 'nineties_counter_add_editor_styles', 20 );
+	// Fallback: inject raw CSS into editor settings for contexts where theme styles are used.
+	add_filter( 'block_editor_settings_all', 'nineties_counter_inject_editor_styles', 10, 2 );
+	add_action( 'init', 'nineties_counter_remove_blog_stats_block_styles', 20 );
 }
 add_action( 'plugins_loaded', 'nineties_counter_init' );
+
+/**
+ * Register counter CSS for the block editor (iframe).
+ *
+ * add_editor_style() registers stylesheets that get_block_editor_theme_styles()
+ * processes and injects into the block editor iframe. This is the correct way
+ * to style block content in the editor when using the iframed editor (WP 6.3+).
+ * Plugins must pass a full URL; see add_editor_style() docs.
+ *
+ * @return void
+ */
+function nineties_counter_add_editor_styles() {
+	if ( ! nineties_counter_is_jetpack_active() ) {
+		return;
+	}
+
+	add_editor_style( NINETIES_COUNTER_PLUGIN_URL . 'assets/css/counter.css' );
+}
+
+/**
+ * Inject counter CSS into the block editor iframe via editor settings.
+ *
+ * This ensures the 1990s counter styles are present in the iframed editor
+ * even when enqueue_block_assets does not include them.
+ *
+ * @param array  $editor_settings Current editor settings.
+ * @param object $editor_context  The block editor context.
+ * @return array Modified editor settings.
+ */
+function nineties_counter_inject_editor_styles( $editor_settings, $editor_context ) {
+	if ( ! nineties_counter_is_jetpack_active() ) {
+		return $editor_settings;
+	}
+
+	$css_file = NINETIES_COUNTER_PLUGIN_DIR . 'assets/css/counter.css';
+	if ( ! file_exists( $css_file ) || ! is_readable( $css_file ) ) {
+		return $editor_settings;
+	}
+
+	$css = file_get_contents( $css_file );
+	if ( false === $css || '' === trim( $css ) ) {
+		return $editor_settings;
+	}
+
+	if ( ! isset( $editor_settings['styles'] ) || ! is_array( $editor_settings['styles'] ) ) {
+		$editor_settings['styles'] = array();
+	}
+
+	$editor_settings['styles'][] = array( 'css' => $css );
+
+	return $editor_settings;
+}
+
+/**
+ * Enqueue editor script to unregister Jetpack Blog Stats block styles.
+ *
+ * Jetpack registers block styles in JavaScript; this script unregisters them
+ * so the styles panel is empty for the Blog Stats block.
+ *
+ * @return void
+ */
+function nineties_counter_enqueue_editor_script() {
+	if ( ! nineties_counter_is_jetpack_active() ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'nineties-counter-editor',
+		NINETIES_COUNTER_PLUGIN_URL . 'assets/js/editor.js',
+		array(
+			'wp-blocks',
+			'wp-dom-ready',
+			'wp-edit-post',
+			'wp-element',
+			'wp-components',
+			'wp-block-editor',
+			'wp-hooks',
+		),
+		NINETIES_COUNTER_VERSION,
+		true
+	);
+
+	wp_localize_script(
+		'nineties-counter-editor',
+		'ninetiesCounterEditor',
+		array(
+			'settingsUrl' => admin_url( 'options-general.php?page=nineties-counter' ),
+		)
+	);
+}
+
+/**
+ * Remove block styles panel for Jetpack Blog Stats block in the editor (PHP).
+ *
+ * Catches any styles registered server-side. Jetpack typically registers
+ * in JS, so the editor script is the main fix.
+ *
+ * @return void
+ */
+function nineties_counter_remove_blog_stats_block_styles() {
+	if ( ! nineties_counter_is_jetpack_active() ) {
+		return;
+	}
+
+	$registry = \WP_Block_Styles_Registry::get_instance();
+	$styles   = $registry->get_registered_styles_for_block( 'jetpack/blog-stats' );
+
+	if ( ! empty( $styles ) ) {
+		foreach ( array_keys( $styles ) as $style_name ) {
+			unregister_block_style( 'jetpack/blog-stats', $style_name );
+		}
+	}
+}
 
 /**
  * Activation hook.
