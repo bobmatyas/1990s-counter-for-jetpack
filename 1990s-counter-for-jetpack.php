@@ -72,9 +72,37 @@ function nineties_counter_init() {
 	add_action( 'after_setup_theme', 'nineties_counter_add_editor_styles', 20 );
 	// Fallback: inject raw CSS into editor settings for contexts where theme styles are used.
 	add_filter( 'block_editor_settings_all', 'nineties_counter_inject_editor_styles', 10, 2 );
+	// Enqueue counter CSS for block editor content (iframed editor, WP 6.3+).
+	add_action( 'enqueue_block_assets', 'nineties_counter_enqueue_editor_counter_css' );
 	add_action( 'init', 'nineties_counter_remove_blog_stats_block_styles', 20 );
 }
 add_action( 'plugins_loaded', 'nineties_counter_init' );
+
+/**
+ * Enqueue counter CSS for block editor content.
+ *
+ * As of WordPress 6.3, enqueue_block_assets runs in the iframed editor for
+ * block content. This ensures the 1990s counter styles apply when the counter
+ * markup is shown in the editor.
+ *
+ * @return void
+ */
+function nineties_counter_enqueue_editor_counter_css() {
+	if ( ! nineties_counter_is_jetpack_active() || ! is_admin() ) {
+		return;
+	}
+
+	$css_file = NINETIES_COUNTER_PLUGIN_DIR . 'assets/css/counter.css';
+	$version  = file_exists( $css_file ) ? (string) filemtime( $css_file ) : NINETIES_COUNTER_VERSION;
+
+	wp_register_style(
+		'nineties-counter',
+		NINETIES_COUNTER_PLUGIN_URL . 'assets/css/counter.css',
+		array(),
+		$version
+	);
+	wp_enqueue_style( 'nineties-counter' );
+}
 
 /**
  * Register counter CSS for the block editor (iframe).
@@ -173,7 +201,9 @@ function nineties_counter_enqueue_editor_script() {
 		'nineties-counter-editor',
 		'ninetiesCounterEditor',
 		array(
-			'settingsUrl' => admin_url( 'options-general.php?page=nineties-counter' ),
+			'settingsUrl'   => admin_url( 'options-general.php?page=nineties-counter' ),
+			'previewNonce'  => wp_create_nonce( 'nineties_counter_preview' ),
+			'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
 		)
 	);
 }

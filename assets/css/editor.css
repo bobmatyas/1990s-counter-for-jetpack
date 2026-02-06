@@ -1,6 +1,26 @@
 /**
- * Block editor styles for 1990s Counter (e.g. sidebar notice).
+ * Block editor styles for 1990s Counter (e.g. sidebar notice and editor preview).
  */
 .nineties-counter-editor-notice {
 	margin-bottom: 12px;
+}
+
+/* Show 1990s counter preview and hide Jetpack Blog Stats default output in the editor. */
+.nineties-counter-editor-wrap {
+	position: relative;
+}
+
+.nineties-counter-editor-wrap .nineties-counter-editor-preview {
+	display: block;
+	min-height: 1em;
+}
+
+/* Hide the default block content so only our 1990s preview is visible. */
+.nineties-counter-editor-wrap .wp-block-jetpack-blog-stats > * {
+	visibility: hidden;
+	height: 0;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	border: 0;
 }
