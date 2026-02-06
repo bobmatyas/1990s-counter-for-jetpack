@@ -3,7 +3,7 @@
  * Plugin Name: 1990s Counter for Jetpack
  * Plugin URI: https://github.com/bobmatyas/1990s-counter-for-jetpack
  * Description: Transforms the Jetpack Blog Stats block into a nostalgic 1990s-style hit counter on the frontend.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Bob Matyas
@@ -141,6 +141,18 @@ function nineties_counter_enqueue_editor_script() {
 		return;
 	}
 
+	$script_path = NINETIES_COUNTER_PLUGIN_DIR . 'assets/js/editor.js';
+	$style_path  = NINETIES_COUNTER_PLUGIN_DIR . 'assets/css/editor.css';
+	$version     = file_exists( $script_path ) ? (string) filemtime( $script_path ) : NINETIES_COUNTER_VERSION;
+	$style_ver   = file_exists( $style_path ) ? (string) filemtime( $style_path ) : NINETIES_COUNTER_VERSION;
+
+	wp_enqueue_style(
+		'nineties-counter-editor',
+		NINETIES_COUNTER_PLUGIN_URL . 'assets/css/editor.css',
+		array(),
+		$style_ver
+	);
+
 	wp_enqueue_script(
 		'nineties-counter-editor',
 		NINETIES_COUNTER_PLUGIN_URL . 'assets/js/editor.js',
@@ -153,7 +165,7 @@ function nineties_counter_enqueue_editor_script() {
 			'wp-block-editor',
 			'wp-hooks',
 		),
-		NINETIES_COUNTER_VERSION,
+		$version,
 		true
 	);
 

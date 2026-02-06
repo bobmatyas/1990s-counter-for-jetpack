@@ -222,7 +222,7 @@ class Plugin {
 	public function render_settings_section() {
 		?>
 		<p>
-			<?php esc_html_e( 'Configure how the 1990s hit counter appears on your site.', '1990s-counter-for-jetpack' ); ?>
+			<?php esc_html_e( 'Configure how the counter appears on your site.', '1990s-counter-for-jetpack' ); ?>
 		</p>
 		<?php
 	}

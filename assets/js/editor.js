@@ -28,10 +28,11 @@
 							initialOpen: true,
 						},
 						wp.element.createElement(
-							'p',
+							wp.components.Notice,
 							{
-								className: 'components-base-control__help',
-								style: { marginBottom: '12px' },
+								status: 'info',
+								isDismissible: false,
+								className: 'nineties-counter-editor-notice',
 							},
 							'Default block styles are being overwritten by the 1990s counter styles.'
 						),
